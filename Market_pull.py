@@ -1,6 +1,7 @@
 import requests
 import time
 import json
+import ast 
 from pprint import pprint
 
 from py_clob_client.client import ClobClient
@@ -18,21 +19,36 @@ CLOB_API = "https://clob.polymarket.com"
 response = requests.get(
     f"{GAMMA_API}/markets",
     params={
-        "limit": 100,
+        "limit": 1000,
         "active": True,
         "closed": False,
         "order": "volume24hr",
         "ascending": False
     }
 )
+
 markets = response.json()
 print(f"Found {len(markets)} markets\n")
 
 
 
-for m in markets[:50]:
-    print(f"Question: {m['question']}")
-    print(f"  Volume 24h: ${m.get('volume24hr', 0):,.0f}")
-    print(f"  Liquidity: ${m.get('liquidityNum', 0):,.0f}")
-    print(f"  Prices: {m.get('outcomePrices', 'N/A')}")
-    print()
+# for m in markets[:50]:
+#     print(f"Question: {m['question']}")
+#     print(f"  Volume 24h: ${m.get('volume24hr', 0):,.0f}")
+#     print(f"  Liquidity: ${m.get('liquidityNum', 0):,.0f}")
+#     print(f"  Prices: {m.get('outcomePrices', 'N/A')}")
+#     print()
+
+def Arbitrage(markets):
+   for market in markets:
+        prices = market.get("outcomePrices")
+        price1, price2 = map(float, ast.literal_eval(prices))
+        total = price1 + price2 
+        print(total)
+        if total != 1.0:
+            print(total)
+        
+
+            
+        
+Arbitrage(markets)

@@ -35,11 +35,11 @@ def main():
     no_ob  = get_orderbook(NO_TOKEN)
    
 
-    last_yes = get_last_trade_price(yes_ob)
-    last_no = get_last_trade_price(no_ob)
+    # last_yes = get_last_trade_price(yes_ob)
+    # last_no = get_last_trade_price(no_ob)
     
-    yes_bid = get_best_bid(yes_ob)
-    no_bid = get_best_bid(no_ob)
+    # yes_bid = get_best_bid(yes_ob)
+    # no_bid = get_best_bid(no_ob)
 
     yes_price = get_best_ask(yes_ob)
     no_price  = get_best_ask(no_ob)

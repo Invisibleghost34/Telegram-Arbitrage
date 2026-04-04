@@ -1,48 +1,49 @@
 import requests
-import sqlite3 
 from scipy.optimize import linprog
+from database import init_db, insert_market, insert_snapshot, insert_trade
 
 
-# Your token IDs
+#Token ids
 YES_TOKEN = "100379208559626151022751801118534484742123694725746262280150222742563282755057"
 NO_TOKEN  = "113732820231608904682346496304917888352004831436510840986547065248348999143469"
 
+#API 
 BASE_URL = "https://clob.polymarket.com"
 GAMMA_URL = "https://gamma-api.polymarket.com"
 
+#Categories of Markets 
+SLUGS = ["politics", "sports", "crypto", "economics"]
 
 # portfolio = {
 #     "cash": 1000.0,
 #     "yes_shares": 0,
 #     "no_shares": 0
 # }
-
 def get_markets():
     url = f"{GAMMA_URL}/markets"
-    params={
-        "active": True,
-        "closed": False,   
-        "offset": 0,
-        "limit": 1000
-    }
-    Market_Data = []
-    pages = 10
     count = 0
-    for page in range(pages): 
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        markets = response.json()
-
-        if not markets: 
-            break 
+    params = {
+        "active": True,
+        "closed": False,
+        "limit": 500,
+        "acceptingOrders": True
+    }
+    response = requests.get(url, params=params)
+    response.raise_for_status()
+    markets = response.json()
+    print(f"Total markets fetched: {len(markets)}")
     for market in markets:
+        events = market.get("events", [])
+        if events:
+            print(events[0].get("ticker"))
         count += 1 
         print(market["question"])
+        print(market["clobTokenIds"])
         print(count)
-    Market_Data.extend(markets)
-    params["offset"] += 100 
-    print(f"total markets fetched: {len(Market_Data)}")
-    return Market_Data
+    return markets
+
+#TO-DO Fix the way token ids for yes and no are imported into the database 
+#fix the arbitrage detection logic
 
 def paper_trade(yes_price, no_price, shares):
     cost = (yes_price + no_price) * shares
@@ -115,8 +116,32 @@ def main():
     yes_ob = get_orderbook(YES_TOKEN)
     no_ob  = get_orderbook(NO_TOKEN)
 
-    get_markets()
-    
+       
+    conn = init_db()
+    markets = get_markets()
+
+    for market in markets:
+        insert_market(conn, market)
+        tokens = market.get("clobTokenIds", [])
+        if len(tokens) < 2: 
+            continue 
+        try: 
+            yes_ob = get_orderbook(tokens[0])
+            no_ob = get_orderbook(tokens[1])
+            yes_ask = get_best_ask(yes_ob)
+            no_ask = get_best_ask(no_ob)
+            if yes_ask is None or no_ask is None: 
+                continue 
+            insert_snapshot(conn, market["id"], yes_ask, no_ask)
+            total = yes_ask + no_ask 
+            if total < 0.99:
+                print(f"ARBITRAGE FOUND - {market['question']} | spread: {1 - total:.4f}" )
+            else:
+                 print(f"{market['question'][:50]} | total: {total:.4f}")
+        except Exception as e:
+            print(f"Error on {market['question'][:40]}: {e}")
+            continue
+
     
     #testing the linear programming method 
     Yes = 0.34 

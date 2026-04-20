@@ -116,6 +116,7 @@ def main():
     yes_ob = get_orderbook(YES_TOKEN)
     no_ob  = get_orderbook(NO_TOKEN)
 
+   
        
     conn = init_db()
     markets = get_markets()
